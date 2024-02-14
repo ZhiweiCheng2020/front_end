@@ -10,37 +10,33 @@
             padding: 10px;
             width: 300px;
             color: #333;
+            height: auto; /* Ensure the container can expand as needed */
+            overflow-y: auto; /* Add scroll for overflow */
         }
     </style>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            socket.on('analysis_update', function(msg) {
+                // Append each new message to the progress div
+                var progressDiv = document.getElementById('progress');
+                progressDiv.innerHTML += msg.data + '<br>';
+            });
+
+            window.startAnalysis = function() {
+                // Emit a message to start analysis on the server
+                socket.emit('start_analysis', {data: 'Start the analysis!'});
+            };
+        });
+    </script>
 </head>
 <body>
-    <h2>Upload Data</h2>
-    <form action="/upload" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" />
-        <button type="submit">Upload and Analyze</button>
-    </form>
-
-    <!-- Progress Updates -->
+    <h1>Upload and Analyze Data</h1>
+    <!-- Assuming there's a form or mechanism here for uploading data -->
+    <!-- Add a button to start analysis -->
+    <button onclick="startAnalysis()">Start Data Analysis</button>
     <div id="progress">Progress updates will appear here...</div>
-
-    <script>
-        // Establish a connection to the SSE endpoint
-        var evtSource = new EventSource("/progress");
-        
-        // Listen for messages
-        evtSource.onmessage = function(e) {
-            // Parse the incoming message as JSON
-            var data = JSON.parse(e.data);
-
-            // Update the progress div with the new message
-            document.getElementById("progress").innerText = data.message || 'Processing...';
-            
-            // If the progress indicates completion, you may wish to close the connection
-            if (data.complete) {
-                evtSource.close();
-                document.getElementById("progress").innerText += "\nAnalysis Complete!";
-            }
-        };
-    </script>
 </body>
 </html>
