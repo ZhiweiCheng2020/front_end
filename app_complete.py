@@ -1,20 +1,20 @@
 from flask import Flask, request, render_template, Response
-import time
 import json
 import threading
 from queue import Queue
+from process_data import process_data as imported_process_data
+import io
+from contextlib import redirect_stdout
 
 app = Flask(__name__)
 
-# This queue will hold progress messages
 progress_updates = Queue()
 
-def process_data(file_path):
-    # Placeholder for your data analysis process
-    # Simulate progress with sleep
-    for i in range(1, 101):
-        progress_updates.put(json.dumps({"message": f"Processing {i}%", "complete": i == 100}))
-        time.sleep(0.1)  # Simulate work being done
+def capture_prints_and_process_data(file_path):
+    with io.StringIO() as buf, redirect_stdout(buf):
+        imported_process_data(file_path)  # Call the imported function
+        for line in buf.getvalue().splitlines():
+            progress_updates.put(json.dumps({"message": line, "complete": "100%" in line}))
 
 @app.route('/')
 def index():
@@ -27,13 +27,9 @@ def upload_file():
     file = request.files['file']
     if file.filename == '':
         return 'No selected file', 400
-    
-    # Save the file to a secure location before processing
-    # For simplicity, we're skipping saving and directly processing
-    # You should use something like `file.save(os.path.join('/path/to/save', filename))`
 
-    # Start the data processing in a background thread to not block the Flask main thread
-    threading.Thread(target=process_data, args=(file.filename,)).start()
+    # Start the data processing in a background thread
+    threading.Thread(target=capture_prints_and_process_data, args=(file.filename,)).start()
     
     return 'File is being processed'
 
