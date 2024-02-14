@@ -1,41 +1,32 @@
-class ProgressReporter:
-    def __init__(self):
-        self.subscribers = []
-
-    def subscribe(self, callback):
-        self.subscribers.append(callback)
-
-    def report(self, message):
-        for callback in self.subscribers:
-            callback(message)
-
-
-def process_data(data, progress_reporter=None):
-    # Example processing step
-    for step in range(10):
-        # Process step...
-        if progress_reporter:
-            progress_reporter.report(f"Processing step {step}/10")
-
-
-
-from flask import Flask, Response, render_template
-import threading
-import queue
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO
+from data_analysis import process_data  # Assuming process_data is modified to accept socketio
 
 app = Flask(__name__)
-progress_reporter = ProgressReporter()
-messages = queue.Queue()
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
-def message_handler(message):
-    messages.put(message)
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-progress_reporter.subscribe(message_handler)
+@socketio.on('start_analysis')  # Listening for an event to start analysis
+def handle_analysis(json):
+    print('Received request to start analysis:', str(json))
+    process_data(socketio)
 
-@app.route('/progress')
-def progress():
-    def generate():
-        while True:
-            message = messages.get()  # Blocking until a message is available
-            yield f"data:{message}\n\n"
-    return Response(generate(), mimetype='text/event-stream')
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
+
+
+def process_data(socketio):
+    # Example data analysis steps
+    analysis_steps = range(10)  # Placeholder for actual analysis steps
+    for step in analysis_steps:
+        # Replace this with actual analysis code
+        update_message = f'Processing step {step+1}/10'
+        socketio.emit('analysis_update', {'data': update_message})
+        # Assuming each step takes some time
+        socketio.sleep(1)
+
+
