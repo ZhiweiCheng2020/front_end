@@ -19,6 +19,7 @@ def capture_prints_process_data_and_return_path(file_path):
             progress_updates.put(json.dumps({"message": line, "complete": "100%" in line}))
         # After processing is complete, put a final message with the output path
         progress_updates.put(json.dumps({"message": "Processing complete", "complete": True, "output_path": output_path}))
+        return render_template('download.html', filename=output_path) 
 
 @app.route('/')
 def index():
